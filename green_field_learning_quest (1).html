@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เกมผจญภัยไขปริศนา - Green Field Quest</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for Thai Language -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            max-width: 1024px;
+            max-height: 768px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-slate-800">
+
+    <div id="game-container" class="relative overflow-hidden bg-emerald-700 shadow-2xl rounded-none md:rounded-2xl border-0 md:border-4 border-emerald-900">
+        
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas" class="w-full h-full block bg-emerald-600"></canvas>
+
+        <!-- Top HUD (Heads-Up Display) -->
+        <div class="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none z-10">
+            <!-- HP Display -->
+            <div class="bg-slate-900/85 backdrop-blur-md border border-slate-700/60 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg">
+                <span class="text-xs md:text-sm font-bold text-slate-300 mr-1">พลังชีวิต:</span>
+                <div id="hp-hearts" class="flex gap-1 text-red-500 text-lg md:text-xl">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+
+            <!-- Progress Display -->
+            <div class="bg-slate-900/85 backdrop-blur-md border border-slate-700/60 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-box-open text-amber-400 text-lg"></i>
+                <span class="text-xs md:text-sm font-bold text-slate-300">กล่องคำถามคงเหลือ:</span>
+                <span id="score-text" class="text-amber-400 font-extrabold text-lg md:text-xl">5 / 5</span>
+            </div>
+        </div>
+
+        <!-- Touch Controls for Mobile / Tablets -->
+        <div id="touch-controls" class="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none z-10 md:hidden opacity-80">
+            <div class="grid grid-cols-3 gap-1 w-36 h-36 pointer-events-auto">
+                <div></div>
+                <button id="btn-up" class="bg-slate-800/80 active:bg-amber-500 text-white rounded-xl text-xl font-bold flex items-center justify-center border border-slate-600 shadow-md">
+                    <i class="fa-solid fa-chevron-up"></i>
+                </button>
+                <div></div>
+                <button id="btn-left" class="bg-slate-800/80 active:bg-amber-500 text-white rounded-xl text-xl font-bold flex items-center justify-center border border-slate-600 shadow-md">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="bg-slate-900/40 rounded-xl"></div>
+                <button id="btn-right" class="bg-slate-800/80 active:bg-amber-500 text-white rounded-xl text-xl font-bold flex items-center justify-center border border-slate-600 shadow-md">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <div></div>
+                <button id="btn-down" class="bg-slate-800/80 active:bg-amber-500 text-white rounded-xl text-xl font-bold flex items-center justify-center border border-slate-600 shadow-md">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div></div>
+            </div>
+            
+            <div class="text-xs text-slate-200 bg-black/60 px-3 py-1.5 rounded-lg border border-white/10 max-w-[140px] text-center">
+                หลบกล่องแดง แล้วชนกล่องทองที่วิ่งอยู่!
+            </div>
+        </div>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-6 text-center text-white">
+            <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg border-4 border-emerald-300">
+                <i class="fa-solid fa-gamepad text-4xl text-slate-900"></i>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-emerald-400 mb-2">เกมผจญภัยท้าทายปัญญา</h1>
+            <p class="text-slate-300 text-sm md:text-base mb-6 max-w-md">
+                บังคับตัวกลมๆ หลบสี่เหลี่ยมสีแดงอันตราย แล้ววิ่งไล่จับ <span class="text-amber-400 font-bold">กล่องคำถามสีทองที่วิ่งสลับไปมา</span> เพื่อตอบคำถามภาษาไทยให้ครบทั้ง 5 ข้อ!
+            </p>
+            <button id="start-btn" class="px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-emerald-500/30 transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border border-emerald-300/30">
+                <i class="fa-solid fa-play mr-2"></i>เริ่มเล่นเกม
+            </button>
+        </div>
+
+        <!-- Static Question Modal Popup (Fixed Size, No Pulsing/Scaling) -->
+        <div id="question-modal" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border-4 border-amber-400 static transform-none transition-none">
+                <!-- Question Header -->
+                <div class="flex justify-between items-center mb-4 pb-3 border-b-2 border-slate-100">
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-circle-question"></i> คำถามภาษาไทย ป.3-ป.4
+                    </span>
+                    <span id="q-category" class="text-xs font-semibold text-slate-500">จับใจความ & เรียงลำดับ</span>
+                </div>
+
+                <!-- Story / Question Text -->
+                <div id="q-context" class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 text-slate-700 text-sm md:text-base leading-relaxed max-h-48 overflow-y-auto">
+                    <!-- Context inserted via JS -->
+                </div>
+                
+                <h3 id="q-title" class="font-bold text-slate-800 text-base md:text-lg mb-4">
+                    <!-- Question title inserted via JS -->
+                </h3>
+
+                <!-- Answer Choices -->
+                <div id="q-choices" class="space-y-2.5">
+                    <!-- Dynamic Buttons -->
+                </div>
+
+                <!-- Feedback Toast inside modal -->
+                <div id="q-feedback" class="mt-4 p-3 rounded-xl text-center text-sm font-bold hidden"></div>
+            </div>
+        </div>
+
+        <!-- Game Over / Victory Modal -->
+        <div id="result-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-30 hidden flex flex-col items-center justify-center p-6 text-center text-white">
+            <div id="result-icon" class="w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl">
+                <!-- Dynamic icon -->
+            </div>
+            <h2 id="result-title" class="text-3xl md:text-4xl font-extrabold mb-2"></h2>
+            <p id="result-desc" class="text-slate-300 text-sm md:text-base mb-6 max-w-md"></p>
+            
+            <button id="restart-btn" class="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-orange-500/30 transform hover:-translate-y-1 transition-all duration-200 cursor-pointer">
+                <i class="fa-solid fa-rotate-right mr-2"></i>เล่นใหม่อีกครั้ง
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const QUESTION_BANK = [
+            {
+                id: 1,
+                context: "ปัจจุบันถุงพลาสติกเป็นสิ่งที่พบได้โดยทั่วไป ในกระบวนการกำจัดนั้นทำได้ยากและส่งผลกระทบทางลบ เช่น หากใช้การฝังกลบจะใช้เวลานานกว่าจะย่อยสลาย แต่ถ้าเผาทำลายก็จะก่อให้เกิดมลพิษต่อคนและสิ่งแวดล้อม การลดปัญหาเหล่านี้ต้องเริ่มจากการลดขยะที่มาจากถุงพลาสติกเกินจำเป็น",
+                question: "ข้อใดเป็นคำถามเชิงเหตุผลที่จะหาคำตอบได้จากข้อความนี้?",
+                choices: [
+                    "ขยะพลาสติก หมายถึงอะไร",
+                    "เหตุใดจึงควรลดใช้พลาสติก",
+                    "ควรปฏิบัติตนอย่างไรในการใช้พลาสติก",
+                    "วิธีการทิ้งพลาสติกควรปฏิบัติอย่างไร"
+                ],
+                answer: 1
+            },
+            {
+                id: 2,
+                context: "1. ใส่ น้ำตาล น้ำปลา พริกขี้หนู พริกเผา\n2. นำน้ำซุปไปตั้งไฟให้เดือด\n3. ใส่เครื่องต้มยำลงไปให้หมด พอเดือดอีกครั้งก็ใส่กุ้งที่เตรียมไว้ลงไปเลย\n4. ปรุงด้วยมะนาวโรยเกลือเพื่อให้มีรสเปรี้ยวหวานเค็มให้เข้มข้นมากยิ่งขึ้น",
+                question: "ข้อใดเรียงลำดับขั้นตอนการทำอาหารได้ถูกต้อง?",
+                choices: [
+                    "1 -> 2 -> 3 -> 4",
+                    "2 -> 3 -> 4 -> 1",
+                    "1 -> 2 -> 4 -> 3",
+                    "2 -> 1 -> 3 -> 4"
+                ],
+                answer: 3
+            },
+            {
+                id: 3,
+                context: "การแปรงฟันอย่างถูกวิธีเป็นสิ่งสำคัญมาก หากแปรงฟันไม่สะอาด เศษอาหารจะสะสมจนทำให้เกิดฟันผุและมีกลิ่นปาก แต่ถ้าแปรงฟันแรงเกินไปก็อาจทำให้เหงือกอักเสบและสารเคลือบฟันสึกได้ การดูแลช่องปากที่ดีจึงควรแปรงฟันอย่างน้อยวันละ 2 ครั้ง",
+                question: "ข้อใดเป็นคำถามเชิงเหตุผลที่จะหาคำตอบได้จากข้อความนี้?",
+                choices: [
+                    "การแปรงฟันหมายถึงอะไร",
+                    "เหตุใดเราจึงไม่ควรแปรงฟันแรงเกินไป",
+                    "เราควรซื้อยาสีฟันยี่ห้อใด",
+                    "ฟันของคนเรามีกี่ซี่"
+                ],
+                answer: 1
+            },
+            {
+                id: 4,
+                context: "1. นำข้าวสารไปล้างน้ำสะอาด 1-2 ครั้ง แล้วเทน้ำออก\n2. กดสวิตช์หุงข้าวแล้วรอจนไฟเปลี่ยนเป็นระบบอุ่น\n3. ตวงข้าวสารใส่หม้อหุงข้าวไฟฟ้าตามปริมาณที่ต้องการ\n4. เติมน้ำสะอาดลงในหม้อตามสัดส่วนที่กำหนด แล้วเช็ดหม้อให้แห้งก่อนใส่เครื่อง",
+                question: "ข้อใดเรียงลำดับขั้นตอนการหุงข้าวได้ถูกต้อง?",
+                choices: [
+                    "3 -> 1 -> 4 -> 2",
+                    "1 -> 2 -> 3 -> 4",
+                    "3 -> 4 -> 1 -> 2",
+                    "2 -> 3 -> 1 -> 4"
+                ],
+                answer: 0
+            },
+            {
+                id: 5,
+                context: "ป่าไม้เป็นแหล่งกำเนิดของแม่น้ำลำธาร และเป็นที่อยู่อาศัยของสัตว์ป่านานาชนิด หากมนุษย์ตัดไม้ทำลายป่า จะทำให้เกิดปัญหาโลกร้อน และเกิดน้ำท่วมฉับพลันในฤดูฝน ดังนั้นทุกคนจึงควรร่วมมือกันปลูกต้นไม้และช่วยกันดูแลรักษาป่าไม้",
+                question: "ข้อใดเป็นคำถามเชิงเหตุผลที่จะหาคำตอบได้จากข้อความนี้?",
+                choices: [
+                    "ต้นไม้ชนิดใดโตเร็วที่สุด",
+                    "ในป่ามีสัตว์กี่ชนิด",
+                    "ทำไมการตัดไม้ทำลายป่าจึงทำให้เกิดน้ำท่วม",
+                    "เราควรไปเที่ยวป่าในเดือนใด"
+                ],
+                answer: 2
+            }
+        ];
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let animationFrameId = null;
+        let gameState = 'START'; // 'START', 'PLAYING', 'PAUSED_QUESTION', 'GAMEOVER', 'VICTORY'
+        
+        let hp = 5;
+        let activeQuestionBoxes = [];
+        let activeQuestionIndexHit = -1;
+        let invulnerableTimer = 0;
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const keys = { Up: false, Down: false, Left: false, Right: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.Up = true;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.Down = true;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.Left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.Right = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.Up = false;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.Down = false;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.Left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.Right = false;
+        });
+
+        const bindTouch = (id, key) => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('mousedown', () => { keys[key] = true; });
+            btn.addEventListener('mouseup', () => { keys[key] = false; });
+        };
+        bindTouch('btn-up', 'Up');
+        bindTouch('btn-down', 'Down');
+        bindTouch('btn-left', 'Left');
+        bindTouch('btn-right', 'Right');
+
+        const player = {
+            x: 100,
+            y: 100,
+            radius: 18,
+            speed: 4.5,
+            color: '#38bdf8',
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                if (invulnerableTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) {
+                    ctx.globalAlpha = 0.4;
+                }
+
+                // Shadow
+                ctx.beginPath();
+                ctx.ellipse(0, this.radius - 2, this.radius * 0.8, this.radius * 0.3, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fill();
+
+                // Player Body
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Eyes
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(-5, -3, 3, 0, Math.PI * 2);
+                ctx.arc(5, -3, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cheeks
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath();
+                ctx.arc(-8, 3, 2.5, 0, Math.PI * 2);
+                ctx.arc(8, 3, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Smile
+                ctx.beginPath();
+                ctx.arc(0, 2, 4, 0.1 * Math.PI, 0.9 * Math.PI);
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.restore();
+            },
+            update() {
+                if (keys.Up && this.y - this.radius > 0) this.y -= this.speed;
+                if (keys.Down && this.y + this.radius < canvas.height) this.y += this.speed;
+                if (keys.Left && this.x - this.radius > 0) this.x -= this.speed;
+                if (keys.Right && this.x + this.radius < canvas.width) this.x += this.speed;
+            }
+        };
+
+        let hazards = [];
+        class Hazard {
+            constructor() {
+                this.size = 24 + Math.random() * 10;
+                this.reset();
+            }
+            reset() {
+                const side = Math.floor(Math.random() * 4);
+                if (side === 0) { this.x = Math.random() * canvas.width; this.y = -30; }
+                else if (side === 1) { this.x = canvas.width + 30; this.y = Math.random() * canvas.height; }
+                else if (side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + 30; }
+                else { this.x = -30; this.y = Math.random() * canvas.height; }
+
+                const targetX = player.x + (Math.random() - 0.5) * 200;
+                const targetY = player.y + (Math.random() - 0.5) * 200;
+                const angle = Math.atan2(targetY - this.y, targetX - this.x);
+                
+                const speed = 2.0 + Math.random() * 2.0;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.rotation = 0;
+                this.rotSpeed = (Math.random() - 0.5) * 0.08;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotSpeed;
+
+                if (this.x < -60 || this.x > canvas.width + 60 || this.y < -60 || this.y > canvas.height + 60) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#991b1b';
+                ctx.strokeRect(-this.size / 2, -this.size / 2, this.size, this.size);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('!', 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        class MovingQuestionBox {
+            constructor(questionData) {
+                this.questionData = questionData;
+                this.size = 36;
+                this.x = 0;
+                this.y = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.initRandomPositionAndVelocity();
+            }
+            initRandomPositionAndVelocity() {
+                const padding = 50;
+                this.x = padding + Math.random() * (canvas.width - padding * 2);
+                this.y = padding + Math.random() * (canvas.height - padding * 2);
+
+                // Ensure initial distance from player
+                if (Math.hypot(this.x - player.x, this.y - player.y) < 150) {
+                    this.x = (player.x + canvas.width / 2) % canvas.width;
+                }
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1.2 + Math.random() * 1.5; // Moving speed for question boxes
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off boundaries smoothly
+                const r = this.size / 2;
+                if (this.x - r < 0) { this.x = r; this.vx *= -1; }
+                if (this.x + r > canvas.width) { this.x = canvas.width - r; this.vx *= -1; }
+                if (this.y - r < 0) { this.y = r; this.vy *= -1; }
+                if (this.y + r > canvas.height) { this.y = canvas.height - r; this.vy *= -1; }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Subtle Outer Aura
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 0.6, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+                ctx.fill();
+
+                // Question Square Box
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#fef08a';
+                ctx.strokeRect(-this.size / 2, -this.size / 2, this.size, this.size);
+
+                // Question Mark Symbol
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 20px Prompt, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('?', 0, 1);
+
+                ctx.restore();
+            }
+        }
+
+        function initGame() {
+            hp = 5;
+            invulnerableTimer = 0;
+            
+            // Center Player
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+
+            // Spawn Red Hazards
+            hazards = [];
+            for (let i = 0; i < 5; i++) {
+                hazards.push(new Hazard());
+            }
+
+            // Spawn ALL Question Boxes as moving entities
+            activeQuestionBoxes = QUESTION_BANK.map(qData => new MovingQuestionBox(qData));
+            updateHUD();
+        }
+
+        function updateHUD() {
+            // Update Hearts
+            const heartsContainer = document.getElementById('hp-hearts');
+            heartsContainer.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                if (i < hp) {
+                    heartsContainer.innerHTML += '<i class="fa-solid fa-heart text-red-500"></i>';
+                } else {
+                    heartsContainer.innerHTML += '<i class="fa-regular fa-heart text-slate-600"></i>';
+                }
+            }
+
+            // Update Remaining Boxes Counter
+            document.getElementById('score-text').innerText = `${activeQuestionBoxes.length} / ${QUESTION_BANK.length}`;
+        }
+
+        function checkCollisions() {
+            // Player vs Red Hazards
+            if (invulnerableTimer <= 0) {
+                for (let h of hazards) {
+                    const dist = Math.hypot(player.x - h.x, player.y - h.y);
+                    if (dist < player.radius + h.size / 2) {
+                        hp--;
+                        invulnerableTimer = 60;
+                        updateHUD();
+
+                        if (hp <= 0) {
+                            endGame(false);
+                        }
+                        break;
+                    }
+                }
+            } else {
+                invulnerableTimer--;
+            }
+
+            // Player vs Gold Question Boxes
+            for (let i = 0; i < activeQuestionBoxes.length; i++) {
+                const qBox = activeQuestionBoxes[i];
+                const dist = Math.hypot(player.x - qBox.x, player.y - qBox.y);
+                if (dist < player.radius + qBox.size / 2) {
+                    activeQuestionIndexHit = i;
+                    openQuestionModal(qBox.questionData);
+                    break;
+                }
+            }
+        }
+
+        function openQuestionModal(qData) {
+            gameState = 'PAUSED_QUESTION';
+
+            document.getElementById('q-context').innerText = qData.context;
+            document.getElementById('q-title').innerText = qData.question;
+
+            const choicesContainer = document.getElementById('q-choices');
+            choicesContainer.innerHTML = '';
+            
+            const feedback = document.getElementById('q-feedback');
+            feedback.classList.add('hidden');
+
+            qData.choices.forEach((choiceText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3.5 bg-slate-100 hover:bg-amber-100 border-2 border-slate-200 hover:border-amber-400 rounded-xl font-medium text-slate-800 transition-all text-sm md:text-base flex items-center gap-3 cursor-pointer";
+                btn.innerHTML = `
+                    <span class="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">${String.fromCharCode(65 + idx)}</span>
+                    <span>${choiceText}</span>
+                `;
+                btn.onclick = () => submitAnswer(idx, qData.answer);
+                choicesContainer.appendChild(btn);
+            });
+
+            document.getElementById('question-modal').classList.remove('hidden');
+        }
+
+        function submitAnswer(selectedIndex, correctIndex) {
+            const feedback = document.getElementById('q-feedback');
+            feedback.classList.remove('hidden');
+
+            if (selectedIndex === correctIndex) {
+                // Correct Answer
+                feedback.className = "mt-4 p-3 rounded-xl text-center text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+                feedback.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> ถูกต้องแล้ว! เก่งมากครับ';
+
+                setTimeout(() => {
+                    document.getElementById('question-modal').classList.add('hidden');
+                    
+                    // Remove current question box from the field
+                    if (activeQuestionIndexHit >= 0) {
+                        activeQuestionBoxes.splice(activeQuestionIndexHit, 1);
+                        activeQuestionIndexHit = -1;
+                    }
+
+                    updateHUD();
+
+                    if (activeQuestionBoxes.length === 0) {
+                        endGame(true);
+                    } else {
+                        gameState = 'PLAYING';
+                    }
+                }, 1100);
+
+            } else {
+                // Incorrect Answer
+                feedback.className = "mt-4 p-3 rounded-xl text-center text-sm font-bold bg-rose-100 text-rose-800 border border-rose-300";
+                feedback.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> ยังไม่ถูกต้อง ลองใหม่อีกครั้งนะ!';
+
+                setTimeout(() => {
+                    document.getElementById('question-modal').classList.add('hidden');
+                    // Bounce question box away slightly
+                    if (activeQuestionIndexHit >= 0) {
+                        activeQuestionBoxes[activeQuestionIndexHit].initRandomPositionAndVelocity();
+                        activeQuestionIndexHit = -1;
+                    }
+                    gameState = 'PLAYING';
+                }, 1300);
+            }
+        }
+
+        function endGame(isVictory) {
+            gameState = isVictory ? 'VICTORY' : 'GAMEOVER';
+            const resultOverlay = document.getElementById('result-overlay');
+            const iconContainer = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+
+            if (isVictory) {
+                iconContainer.className = "w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl bg-amber-400 text-slate-900 border-4 border-amber-200";
+                iconContainer.innerHTML = '<i class="fa-solid fa-trophy text-5xl"></i>';
+                title.innerText = "ยินดีด้วย! คุณผ่านด่านแล้ว";
+                title.className = "text-3xl md:text-4xl font-extrabold mb-2 text-amber-300";
+                desc.innerText = `คุณตอบคำถามถูกต้องครบทั้งหมด ${QUESTION_BANK.length} ข้อได้สำเร็จ!`;
+            } else {
+                iconContainer.className = "w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl bg-rose-600 text-white border-4 border-rose-300";
+                iconContainer.innerHTML = '<i class="fa-solid fa-heart-crack text-5xl"></i>';
+                title.innerText = "พลังชีวิตหมดแล้ว!";
+                title.className = "text-3xl md:text-4xl font-extrabold mb-2 text-rose-400";
+                desc.innerText = `พยายามได้ดีมาก! ลองฝึกฝนการหลบหลีกแล้วกลับมาสู้อีกครั้งครับ`;
+            }
+
+            resultOverlay.classList.remove('hidden');
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#059669';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Subtle Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function gameLoop() {
+            if (gameState === 'PLAYING') {
+                drawBackground();
+
+                // Update & Draw Player
+                player.update();
+                player.draw();
+
+                // Update & Draw Hazards
+                for (let h of hazards) {
+                    h.update();
+                    h.draw();
+                }
+
+                // Update & Draw All Moving Question Boxes
+                for (let qBox of activeQuestionBoxes) {
+                    qBox.update();
+                    qBox.draw();
+                }
+
+                checkCollisions();
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-overlay').classList.add('hidden');
+            initGame();
+            gameState = 'PLAYING';
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('result-overlay').classList.add('hidden');
+            initGame();
+            gameState = 'PLAYING';
+        });
+
+        window.onload = function () {
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
